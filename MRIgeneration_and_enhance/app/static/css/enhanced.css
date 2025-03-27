@@ -1,0 +1,112 @@
+:root {
+    --primary-color: #4a6fa5;
+    --secondary-color: #6c757d;
+    --success-color: #28a745;
+    --info-color: #17a2b8;
+    --border-color: #dee2e6;
+    --shadow-color: rgba(0, 0, 0, 0.1);
+    --transition-speed: 0.3s;
+}
+
+/* 全局动画效果 */
+.fade-in {
+    opacity: 0;
+    animation: fadeIn 0.5s ease-in forwards;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* 参数面板样式优化 */
+.parameter-panel {
+    transition: all var(--transition-speed);
+    border: none;
+    box-shadow: 0 4px 6px var(--shadow-color);
+}
+
+.parameter-panel:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px var(--shadow-color);
+}
+
+.slider-container {
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    transition: all var(--transition-speed);
+}
+
+.slider-container:hover {
+    background: #fff;
+    box-shadow: 0 2px 4px var(--shadow-color);
+}
+
+/* 按钮样式优化 */
+.btn-generate {
+    position: relative;
+    overflow: hidden;
+    transition: all var(--transition-speed);
+}
+
+.btn-generate:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px var(--shadow-color);
+}
+
+/* 样本卡片样式 */
+.sample-card {
+    transition: all var(--transition-speed);
+    border: none;
+    box-shadow: 0 2px 4px var(--shadow-color);
+}
+
+.sample-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px var(--shadow-color);
+}
+
+/* 图像查看器样式 */
+.viewer-section {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    transition: all var(--transition-speed);
+    box-shadow: 0 2px 4px var(--shadow-color);
+}
+
+.viewer-section:hover {
+    box-shadow: 0 4px 8px var(--shadow-color);
+}
+
+.view-control {
+    margin-top: 1rem;
+    padding: 0.5rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+/* 加载动画优化 */
+.loading-overlay {
+    backdrop-filter: blur(5px);
+}
+
+/* 调试面板样式 */
+.debug-container {
+    opacity: 0.7;
+    transition: opacity var(--transition-speed);
+}
+
+.debug-container:hover {
+    opacity: 1;
+}
+
+.debug-output pre {
+    font-family: 'Consolas', monospace;
+    font-size: 0.9rem;
+    background: #f8f9fa;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+}

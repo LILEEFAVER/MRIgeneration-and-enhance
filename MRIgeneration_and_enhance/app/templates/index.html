@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>脑部MRI生成系统</title>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link href="/static/css/vendor/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nouislider@14.6.3/distribute/nouislider.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/enhanced.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
+</head>
+<body class="bg-light">
+    <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+        <div class="spinner-border text-light mb-3" role="status">
+            <span class="visually-hidden">加载中...</span>
+        </div>
+        <h4>正在生成脑部MRI图像，请稍候...</h4>
+        <p id="loadingMessage">正在执行命令...</p>
+    </div>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- 左侧参数面板 -->
+            <div class="col-md-3 p-4" style="min-height: 100vh; background-color: #f8f9fa; border-right: 1px solid #e9ecef;">
+                <h2 class="text-center mb-4 text-primary"><i class="bi bi-brain"></i> 脑部MRI生成增强系统</h2>
+                <div class="card parameter-panel shadow-sm">
+                    <div class="card-header">
+                        <i class="bi bi-sliders"></i> 参数配置
+                    </div>
+                    <div class="card-body">
+                        <div class="slider-container">
+                            <label for="gender-slider"><i class="bi bi-gender-ambiguous"></i> 性别 (0:女性, 1:男性)</label>
+                            <div id="gender-slider"></div>
+                            <div class="parameter-value" id="gender-value">0.5</div>
+                        </div>
+                        
+                        <div class="slider-container">
+                            <label for="age-slider"><i class="bi bi-calendar3"></i> 年龄 (标准化值)</label>
+                            <div id="age-slider"></div>
+                            <div class="parameter-value" id="age-value">0.5</div>
+                        </div>
+                        
+                        <div class="slider-container">
+                            <label for="ventricular-vol-slider"><i class="bi bi-droplet"></i> 脑室体积 (标准化值)</label>
+                            <div id="ventricular-vol-slider"></div>
+                            <div class="parameter-value" id="ventricular-vol-value">0.5</div>
+                        </div>
+                        
+                        <div class="slider-container">
+                            <label for="brain-vol-slider"><i class="bi bi-diagram-3"></i> 脑体积 (标准化值)</label>
+                            <div id="brain-vol-slider"></div>
+                            <div class="parameter-value" id="brain-vol-value">0.5</div>
+                        </div>
+                        
+                        <div class="slider-container">
+                            <label for="steps-slider"><i class="bi bi-arrow-repeat"></i> 推理步数</label>
+                            <div id="steps-slider"></div>
+                            <div class="parameter-value" id="steps-value">50</div>
+                        </div>
+                        
+                        <div class="slider-container">
+                            <label for="filename-input"><i class="bi bi-file-earmark"></i> 文件名</label>
+                            <input type="text" class="form-control" id="filename-input" placeholder="请输入文件名（可选）">
+                        </div>
+                        
+                        <button class="btn btn-primary w-100 mt-4 btn-generate" id="generateBtn">
+                            <i class="bi bi-magic"></i> 生成脑部MRI
+                        </button>
+                        
+                        <div class="alert alert-info mt-4" role="alert">
+                            所有参数值应在0到1之间，代表标准化后的值。
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 右侧显示区域 -->
+            <div class="col-md-9 p-4 bg-white">
+                <div id="resultContainer" style="display: none;">
+                    <h3>生成结果</h3>
+                    <div class="alert alert-success" id="successMessage"></div>
+                    
+                    <div class="d-flex justify-content-end mb-3">
+                        <a href="#" class="btn btn-success me-2" id="downloadBtn"><i class="bi bi-download"></i> 下载NIfTI文件</a>
+                        <a href="#" class="btn btn-primary me-2" id="viewBtn"><i class="bi bi-grid-3x3"></i> 2D查看器</a>
+                        <a href="#" class="btn btn-info me-2" id="enhanceBtn"><i class="bi bi-image"></i> 图像增强</a>
+                    </div>
+                    
+                    <div class="image-viewer">
+                        <div class="viewer-section">
+                            <h4>轴向视图</h4>
+                            <div class="axial-view-container">
+                                <img id="axialView" src="" alt="轴向视图">
+                                <div class="view-control">
+                                    <input type="range" class="form-range" id="axialSlice" min="0" max="19" value="10">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="viewer-section">
+                            <h4>冠状视图</h4>
+                            <div class="coronal-view-container">
+                                <img id="coronalView" src="" alt="冠状视图">
+                                <div class="view-control">
+                                    <input type="range" class="form-range" id="coronalSlice" min="0" max="27" value="14">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="viewer-section">
+                            <h4>矢状视图</h4>
+                            <div class="sagittal-view-container">
+                                <img id="sagittalView" src="" alt="矢状视图">
+                                <div class="view-control">
+                                    <input type="range" class="form-range" id="sagittalSlice" min="0" max="19" value="10">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-5" id="samplesContainer">
+                    <h3 class="border-bottom pb-2">已有样本</h3>
+                    <div class="alert alert-info"><i class="bi bi-info-circle"></i> 您可以直接查看以下已生成的样本</div>
+                    
+                    <div class="row" id="samplesList">
+                        <!-- 样本将在这里动态加载 -->
+                        <div class="col-12 text-center">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">加载中...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 debug-container">
+                    <button id="debugFilesBtn" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-bug"></i> 诊断文件系统
+                    </button>
+                    <div id="debugOutput" class="mt-2 debug-output" style="display:none;">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted small"><i class="bi bi-info-circle"></i> 系统文件信息</span>
+                            <button class="btn btn-sm btn-outline-danger" onclick="$('#debugOutput').hide()">
+                                <i class="bi bi-x"></i>
+                            </button>
+                        </div>
+                        <pre class="p-3 bg-light" style="max-height: 300px; overflow-y: auto; border-radius: 6px;"></pre>
+                    </div>
+                </div>
+                
+                <div class="text-center p-5 welcome-container" id="initialMessage">
+                    <h3>欢迎使用脑部MRI生成系统</h3>
+                    <p class="lead">请在左侧配置参数并点击生成按钮开始</p>
+                    <img src="{{ url_for('static', filename='img/figure_1.png') }}" 
+                         alt="MRI示例" class="img-fluid mt-4 shadow-sm" style="max-width: 500px; border-radius: 8px;">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/nouislider@14.6.3/distribute/nouislider.min.js"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+    // 加载已有样本列表
+    function loadSamples() {
+        $.ajax({
+            url: '/api/list_samples',
+            type: 'GET',
+            success: function(response) {
+                if (response.success && response.samples.length > 0) {
+                    $('#samplesList').empty();
+                    
+                    // 添加样本数量指示
+                    $('#samplesContainer h3').html(`已有样本 <span class="badge bg-primary">${response.samples.length}</span>`);
+                    
+                    response.samples.forEach(function(sample, index) {
+                        const card = `
+                            <div class="col-md-4 mb-3 fade-in" style="animation-delay: ${index * 0.1}s">
+                                <div class="card sample-card">
+                                    <div class="card-header bg-light text-muted small">
+                                        <i class="bi bi-file-earmark-medical"></i> NIfTI文件
+                                    </div>
+                                    <div class="card-body">
+                                        <h5 class="card-title text-truncate" title="${sample}">${sample}</h5>
+                                        <div class="d-flex justify-content-between mt-3">
+                                            <a href="/view/${sample}" class="btn btn-primary btn-sm" data-bs-toggle="tooltip" title="在2D查看器中查看"><i class="bi bi-eye"></i> 2D</a>
+                                            <a href="/enhance/${sample}" class="btn btn-info btn-sm" data-bs-toggle="tooltip" title="图像增强"><i class="bi bi-image"></i> 增强</a>
+                                            <a href="/download/${sample}" class="btn btn-success btn-sm" data-bs-toggle="tooltip" title="下载NIfTI文件"><i class="bi bi-download"></i> 下载</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        $('#samplesList').append(card);
+                    });
+                } else {
+                    $('#samplesList').html('<div class="col-12 text-center">暂无样本文件</div>');
+                }
+            },
+            error: function() {
+                $('#samplesList').html('<div class="col-12 text-center text-danger">加载样本失败</div>');
+            }
+        });
+    }
+
+    // 页面加载时执行
+    $(document).ready(function() {
+        loadSamples();
+
+        // 调试按钮
+        $('#debugFilesBtn').click(function() {
+            $.ajax({
+                url: '/api/debug/files',
+                success: function(response) {
+                    if (response.success) {
+                        $('#debugOutput').show();
+                        $('#debugOutput pre').text(JSON.stringify(response, null, 2));
+                    } else {
+                        alert('获取文件信息失败: ' + response.message);
+                    }
+                },
+                error: function() {
+                    alert('请求失败');
+                }
+            });
+        });
+    });
+    </script>
+</body>
+</html>

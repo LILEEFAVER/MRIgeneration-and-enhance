@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图像查看器</title>
+    <link href="/static/css/vendor/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/css/viewer.css" rel="stylesheet">
+    <link href="/static/css/enhanced.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container fade-in">
+        <h1 class="text-center mb-4">NIfTI图像查看器</h1>
+        <div class="alert alert-info">
+            当前文件: <span id="filename">{{ filename }}</span>
+        </div>
+        
+        <div class="text-center mb-3">
+            <a href="/" class="btn btn-secondary">返回主页</a>
+            <a href="/download/{{ filename }}" class="btn btn-success">下载文件</a>
+            <a href="/test_image" target="_blank" class="btn btn-info">测试图像生成</a>
+        </div>
+        
+        <div id="fileInfo" class="alert alert-light">
+            加载文件信息中...
+        </div>
+        
+        <div class="viewer-container">
+            <div class="slice-viewer" id="basicView">
+                <div class="slice-container viewer-section">
+                    <h3>轴向视图 (Axial)</h3>
+                    <div id="axialLoading" class="text-center py-3">
+                        <span class="loading"></span>
+                        <p>加载中...</p>
+                    </div>
+                    <img src="" class="slice-img" id="axialImg" style="display:none;">
+                    <div id="axialError" class="error-message" style="display:none;"></div>
+                    <div class="controls">
+                        <input type="range" class="form-range" id="axialSlider" min="0" max="20" value="10">
+                        <span>切片: <span id="axialIndex">10</span></span>
+                    </div>
+                </div>
+                
+                <div class="slice-container viewer-section">
+                    <h3>冠状视图 (Coronal)</h3>
+                    <div id="coronalLoading" class="text-center py-3">
+                        <span class="loading"></span>
+                        <p>加载中...</p>
+                    </div>
+                    <img src="" class="slice-img" id="coronalImg" style="display:none;">
+                    <div id="coronalError" class="error-message" style="display:none;"></div>
+                    <div class="controls">
+                        <input type="range" class="form-range" id="coronalSlider" min="0" max="20" value="10">
+                        <span>切片: <span id="coronalIndex">10</span></span>
+                    </div>
+                </div>
+                
+                <div class="slice-container viewer-section">
+                    <h3>矢状视图 (Sagittal)</h3>
+                    <div id="sagittalLoading" class="text-center py-3">
+                        <span class="loading"></span>
+                        <p>加载中...</p>
+                    </div>
+                    <img src="" class="slice-img" id="sagittalImg" style="display:none;">
+                    <div id="sagittalError" class="error-message" style="display:none;"></div>
+                    <div class="controls">
+                        <input type="range" class="form-range" id="sagittalSlider" min="0" max="20" value="10">
+                        <span>切片: <span id="sagittalIndex">10</span></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            const filename = '{{ filename }}';
+            
+            // 获取文件信息
+            $.ajax({
+                url: `/api/verify_file/${filename}`,
+                type: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        $('#fileInfo').html(`
+                            <strong>文件验证成功</strong><br/>
+                            路径: ${response.path}<br/>
+                            大小: ${response.shape ? response.shape.join(' × ') : '未知'} 像素
+                        `);
+                    } else {
+                        $('#fileInfo').html(`
+                            <strong>文件验证失败</strong><br/>
+                            错误: ${response.message}
+                        `).addClass('alert-danger');
+                    }
+                },
+                error: function() {
+                    $('#fileInfo').html('无法验证文件').addClass('alert-danger');
+                }
+            });
+            
+            // 加载图像维度
+            $.ajax({
+                url: `/api/get_dimensions/${filename}`,
+                type: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        // 更新滑块范围
+                        const dims = response.dimensions;
+                        $('#fileInfo').append(`<br/>Width: ${dims.width}, Height: ${dims.height}, Depth: ${dims.depth}`);
+                        
+                        $('#axialSlider').attr('max', dims.depth - 1);
+                        $('#coronalSlider').attr('max', dims.height - 1);
+                        $('#sagittalSlider').attr('max', dims.width - 1);
+                        
+                        // 设置初始值为中间切片
+                        const axialMid = Math.floor(dims.depth / 2);
+                        const coronalMid = Math.floor(dims.height / 2);
+                        const sagittalMid = Math.floor(dims.width / 2);
+                        
+                        $('#axialSlider').val(axialMid);
+                        $('#coronalSlider').val(coronalMid);
+                        $('#sagittalSlider').val(sagittalMid);
+                        
+                        $('#axialIndex').text(axialMid);
+                        $('#coronalIndex').text(coronalMid);
+                        $('#sagittalIndex').text(sagittalMid);
+                        
+                        // 更新图像
+                        loadSlice('axial', axialMid);
+                        loadSlice('coronal', coronalMid);
+                        loadSlice('sagittal', sagittalMid);
+                    } else {
+                        $('#fileInfo').html(`
+                            <strong>加载维度信息失败</strong><br/>
+                            错误: ${response.message}
+                        `).addClass('alert-danger');
+                        
+                        // 使用默认值
+                        loadSlice('axial', 10);
+                        loadSlice('coronal', 10);
+                        loadSlice('sagittal', 10);
+                    }
+                },
+                error: function() {
+                    $('#fileInfo').html('无法获取文件维度').addClass('alert-danger');
+                    
+                    // 使用默认值
+                    loadSlice('axial', 10);
+                    loadSlice('coronal', 10);
+                    loadSlice('sagittal', 10);
+                }
+            });
+            
+            // 滑块事件
+            $('#axialSlider').on('input', function() {
+                const index = $(this).val();
+                $('#axialIndex').text(index);
+                loadSlice('axial', index);
+            });
+            
+            $('#coronalSlider').on('input', function() {
+                const index = $(this).val();
+                $('#coronalIndex').text(index);
+                loadSlice('coronal', index);
+            });
+            
+            $('#sagittalSlider').on('input', function() {
+                const index = $(this).val();
+                $('#sagittalIndex').text(index);
+                loadSlice('sagittal', index);
+            });
+            
+            // 加载切片图像
+            function loadSlice(viewType, index) {
+                // 显示加载状态
+                $(`#${viewType}Loading`).show();
+                $(`#${viewType}Img`).hide();
+                $(`#${viewType}Error`).hide();
+                
+                const timestamp = new Date().getTime();
+                const img = new Image();
+                
+                img.onload = function() {
+                    $(`#${viewType}Loading`).hide();
+                    $(`#${viewType}Img`).attr('src', img.src).show();
+                };
+                
+                img.onerror = function() {
+                    $(`#${viewType}Loading`).hide();
+                    $(`#${viewType}Error`).text(`无法加载${viewType}视图，索引: ${index}`).show();
+                };
+                
+                img.src = `/slices/${filename}/${viewType}/${index}?t=${timestamp}`;
+            }
+        });
+    </script>
+</body>
+</html>

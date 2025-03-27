@@ -1,0 +1,14 @@
+<!-- 切片查看器组件 -->
+<div class="slice-container">
+    <h3>{{ title }}</h3>
+    <div id="{{ id }}Loading" class="text-center py-3">
+        <span class="loading"></span>
+        <p>加载中...</p>
+    </div>
+    <img src="" class="slice-img" id="{{ id }}Img" style="display:none;">
+    <div id="{{ id }}Error" class="error-message" style="display:none;"></div>
+    <div class="controls">
+        <input type="range" class="form-range" id="{{ id }}Slider" min="0" max="{{ max_index }}" value="{{ default_index }}">
+        <span>切片: <span id="{{ id }}Index">{{ default_index }}</span></span>
+    </div>
+</div> 
